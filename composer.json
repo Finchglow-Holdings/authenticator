@@ -22,5 +22,7 @@
     },
     "require": {
         "firebase/php-jwt": "^6.10"
-    }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }
