@@ -1,0 +1,26 @@
+{
+    "name": "finchglow/authenticator",
+    "description": "authenticate incoming request",
+    "type": "package",
+    "autoload": {
+        "psr-4": {
+            "Finchglow\\Authenticator\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Damilola Adekoya",
+            "email": "dharmykoya38@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Finchglow\\Authenticator\\AuthenticatorServiceProvider"
+            ]
+        }
+    },
+    "require": {
+        "firebase/php-jwt": "^6.10"
+    }
+}
