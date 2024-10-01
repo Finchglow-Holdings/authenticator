@@ -24,7 +24,7 @@ class AuthenticatorServiceProvider extends ServiceProvider
     {
         $this->app['router']->aliasMiddleware('authenticate-client', AuthenticateClientMiddleware::class);
         
-        $this->app['router']->aliasMiddleware('check-permission', CheckPermissionMiddleware::class);
+        $this->app['router']->aliasMiddleware('permission', CheckPermissionMiddleware::class);
         $this->app['router']->aliasMiddleware('get-user', GetUserMiddleware::class);
 
         $this->publishes([
