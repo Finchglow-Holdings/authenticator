@@ -68,6 +68,7 @@ class AuthenticateClientMiddleware
             }
 
             $keyableArray = json_decode(json_encode($keyable), true);
+            $keyableArray['user_type'] = $keyFound->type;
             $request->merge(['company_details' => $keyableArray]);
 
 
