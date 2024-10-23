@@ -73,7 +73,10 @@ class AuthenticateClientMiddleware
 
             return $next($request);
         } catch (\Exception $exception) {
-            abort(401, "An error occurred contact admin.");
+            if ($exception->getMessage() != "UnAuthorized") {
+                abort(401, "An error occurred contact admin.");
+            }
+            abort(401, "UnAuthorized");
         }
     }
 }
