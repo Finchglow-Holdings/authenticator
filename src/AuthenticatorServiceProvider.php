@@ -3,6 +3,7 @@
 namespace Finchglow\Authenticator;
 
 use Finchglow\Authenticator\Http\Middleware\AuthenticateClientMiddleware;
+use Finchglow\Authenticator\Http\Middleware\AuthenticateCompanyKeyMiddleware;
 use Finchglow\Authenticator\Http\Middleware\CheckPermissionMiddleware;
 use Finchglow\Authenticator\Http\Middleware\GetUserMiddleware;
 use Illuminate\Support\ServiceProvider;
@@ -22,8 +23,7 @@ class AuthenticatorServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->app['router']->aliasMiddleware('authenticate-client', AuthenticateClientMiddleware::class);
-
+        $this->app['router']->aliasMiddleware('auth-client-key', AuthenticateClientMiddleware::class);
         $this->app['router']->aliasMiddleware('check-permission', CheckPermissionMiddleware::class);
         $this->app['router']->aliasMiddleware('get-user', GetUserMiddleware::class);
 

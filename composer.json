@@ -21,7 +21,8 @@
         }
     },
     "require": {
-        "firebase/php-jwt": "^6.10"
+        "firebase/php-jwt": "^6.10",
+        "paragonie/ciphersweet": "^4.7"
     },
     "minimum-stability": "stable",
     "prefer-stable": true
