@@ -17,9 +17,8 @@ class CheckPermissionMiddleware
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, $permissionName): Response
     {
-
         $jwtAuthService = new JwtAuthService();
 
         $token = $request->header('token');
@@ -53,10 +52,9 @@ class CheckPermissionMiddleware
             ->select('permissions.name')
             ->pluck('name');
 
-        if (!in_array($permissions, explode(", ", $permissions))) {
+        if (!in_array($permissionName, $permissions->toArray())) {
             abort(Response::HTTP_UNAUTHORIZED, 'You do not have permission to perform this action.');
         }
-
 
         return $next($request);
     }
