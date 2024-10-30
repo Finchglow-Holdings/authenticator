@@ -87,6 +87,3 @@ This will ensure that:
 
 This package is open-source and distributed under the MIT License. Feel free to modify it to suit your needs.
 
----
-
-This README provides a clear guide on how to install, configure, and use the `finchglow/authenticator` package. You can further expand it with more details if needed, such as example configurations or additional features.
