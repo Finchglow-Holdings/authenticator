@@ -19,6 +19,31 @@ Run the following command to install the package:
 composer require finchglow/authenticator
 ```
 
+### Step 2: Add the database configuration
+
+Add the following details to database.php
+```bash
+'authentication_db' => [
+'driver' => 'mysql',
+'url' => env('DATABASE_URL'),
+'host' => env('AUTH_DB_HOST', 'ls-a1dbf2caf604664b40d0d94b56339b62cf4d4676.cijcl8if98pr.us-east-1.rds.amazonaws.com'),
+'port' => env('AUTH_DB_PORT', '3306'),
+'database' => env('AUTH_DB_DATABASE', 'travel_user'),
+'username' => env('AUTH_DB_USERNAME', 'travel_user'),
+'password' => env('AUTH_DB_PASSWORD', '7E4rQn6jDy3SCQ'),
+'unix_socket' => env('DB_SOCKET', ''),
+'charset' => 'utf8mb4',
+'collation' => 'utf8mb4_unicode_ci',
+'prefix' => '',
+'prefix_indexes' => true,
+'strict' => true,
+'engine' => null,
+'options' => extension_loaded('pdo_mysql') ? array_filter([
+    PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+]) : [],
+]
+```
+
 ## Middleware Overview
 
 1. **`auth-client-key`**  
