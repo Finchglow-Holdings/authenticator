@@ -20,7 +20,14 @@ class CipherSweetEncryption
      */
     public function __construct()
     {
-        $key = env('JWT_KEY', "secret");
+//        $key = env('JWT_KEY', "secret");
+
+        $key = env('JWT_KEY');
+
+        // Validate key length (64 hex chars = 32 bytes)
+        if (strlen($key) !== 64) {
+            throw new \RuntimeException('Encryption key must be 64 hexadecimal characters (256 bits)');
+        }
 
         $this->engine = new FIPSCrypto();
         $this->cipherSweet = new CipherSweet(new StringProvider($key), $this->engine);
