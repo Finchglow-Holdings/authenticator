@@ -118,6 +118,18 @@ class AuthenticateClientMiddleware
 
             return $next($request);
         } catch (\Exception $exception) {
+            DB::connection('authentication_db')->table('error_logs')->insert([
+                'service' => 'authenticator',
+                'type' => 'authorization',
+                'file' => 'AuthenticateClientMiddleware.php',
+                'error' => json_encode([
+                    'message' => $exception->getMessage(),
+                    'trace' => $exception->getTraceAsString(),
+                ]),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
             if ($exception->getMessage() != "UnAuthorized") {
                 abort(403, "An error occurred contact admin.");
             }
