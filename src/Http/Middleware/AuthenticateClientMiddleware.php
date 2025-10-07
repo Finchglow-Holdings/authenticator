@@ -131,7 +131,7 @@ class AuthenticateClientMiddleware
             ]);
 
             if ($exception->getMessage() != "UnAuthorized") {
-                abort(403, "An error occurred contact admin.");
+                abort(403, $exception->getMessage());
             }
             abort(403, "UnAuthorized");
         }

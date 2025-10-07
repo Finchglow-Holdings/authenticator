@@ -35,10 +35,15 @@ class CheckPermissionMiddleware
         $user = new GenericUser((array) $decodedToken);
         Auth::setUser($user);
 
+        // allow owners do everything on the system
+        if ($user->role == "owner") {
+            return $next($request);
+        }
+
         $permissionsTable = env('PERMISSIONS_TABLE', default: 'model_has_permissions');
         $modelType = 'App\Models\User';
 
-        if ($user->type == 'admin') {
+        if (in_array(strtolower($user->type), ['super_admin', 'company'])) {
             $modelType = 'App\Models\Admin';
         } else if ($user->type == 'agent') {
             $modelType = 'App\Models\Agent';
