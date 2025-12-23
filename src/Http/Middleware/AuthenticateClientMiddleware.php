@@ -82,6 +82,10 @@ class AuthenticateClientMiddleware
                 abort(403, "UnAuthorized");
             }
 
+            if ($clientType !== "" && $clientType !== $keyFound->type) {
+                abort(403, "UnAuthorized");
+            }
+
             $encryptService = new CipherSweetEncryption();
             $encryptedKey = $encryptService->decryptValue('api_keys', $hashColumn, $keyFound->$hashColumn);
 
