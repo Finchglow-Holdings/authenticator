@@ -25,6 +25,18 @@ class JwtAuthMiddleware {
 
         try {
             $loggedInUser =  $jwtAuthService->decodeToken($token);
+            $companyDetails = request()->company_details;
+
+            // if it is an agent or user, it checks if they are using the right company of agency details
+            if (!in_array($type, ["super_admin", "company"])) {
+                if ($loggedInUser->company_id !== $companyDetails['company_id'] ?? "") {
+                    return response()->json(['status' => false, 'error' => 'Unauthorized to access this resource'], Response::HTTP_UNAUTHORIZED);
+                }
+
+                if ($loggedInUser->agency_id !== $companyDetails['agency_id'] ?? "") {
+                    return response()->json(['status' => false, 'error' => 'Unauthorized to access this resource'], Response::HTTP_UNAUTHORIZED);
+                }
+            }
 
             if ($loggedInUser->type != $type) {
                 return response()->json(['status' => false, 'error' => 'Unauthorized to access this resource'], Response::HTTP_UNAUTHORIZED);

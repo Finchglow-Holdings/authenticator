@@ -45,16 +45,6 @@ class AuthenticateClientMiddleware
                 abort(403, "UnAuthorized");
             }
 
-            $table = 'companies';
-            if ($keyFound->type == 'agency') {
-                $table = 'agencies';
-            }
-
-            if ($clientType != "" && $clientType != $keyFound->type) {
-                abort(403, "UnAuthorized");
-            }
-
-
             $keyFound = DB::connection('authentication_db')
                 ->table('api_keys')
                 ->leftJoin('agencies', function ($join) {
