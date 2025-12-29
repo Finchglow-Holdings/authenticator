@@ -33,7 +33,7 @@ class AuthenticateClientMiddleware
                 $hashColumn = "test_api_key";
             }
 
-            $key = explode("_", $apiKey)[1];
+            $key = explode("_", $apiKey)[1] ?? null;
             $hashedKey = hash('sha256', $key);
 
             $keyFound = DB::connection('authentication_db')
@@ -125,7 +125,7 @@ class AuthenticateClientMiddleware
             ]);
 
             if ($exception->getMessage() != "UnAuthorized") {
-                abort(403, $exception->getMessage());
+                abort(500, "Invalid Authentication");
             }
             abort(403, "UnAuthorized");
         }
