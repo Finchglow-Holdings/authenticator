@@ -38,7 +38,7 @@ class JwtAuthMiddleware {
                     }
                 }
 
-                if ($loggedInUser->type == 'customer') {
+                if ($loggedInUser->type == 'user') {
                     if ($loggedInUser->company_id !== $companyDetails['company_id'] ?? "") {
                         return response()->json(['status' => false, 'error' => 'Unauthorized to access this resource'], Response::HTTP_UNAUTHORIZED);
                     }
