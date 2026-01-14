@@ -5,6 +5,7 @@ namespace Finchglow\Authenticator;
 use Finchglow\Authenticator\Http\Middleware\AuthenticateClientMiddleware;
 use Finchglow\Authenticator\Http\Middleware\CheckPermissionMiddleware;
 use Finchglow\Authenticator\Http\Middleware\GetUserMiddleware;
+use Finchglow\Authenticator\Http\Middleware\IsThirdPartyMiddleware;
 use Finchglow\Authenticator\Http\Middleware\JwtAuthMiddleware;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,6 +28,7 @@ class AuthenticatorServiceProvider extends ServiceProvider
         $this->app['router']->aliasMiddleware('check-permission', CheckPermissionMiddleware::class);
         $this->app['router']->aliasMiddleware('get-user', GetUserMiddleware::class);
         $this->app['router']->aliasMiddleware('jwt-auth', JwtAuthMiddleware::class);
+        $this->app['router']->aliasMiddleware('third-party', IsThirdPartyMiddleware::class);
 
         $this->publishes([
             __DIR__ . '/Http/Middleware/AuthenticateClientMiddleware.php' => app_path('Http/Middleware/AuthenticateClientMiddleware.php'),
