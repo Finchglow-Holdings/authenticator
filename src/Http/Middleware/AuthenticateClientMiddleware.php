@@ -52,8 +52,11 @@ class AuthenticateClientMiddleware
                         ->where('api_keys.keyable_type', '=', 'App\\Models\\Agency');
                 })
                 ->leftJoin('companies', function ($join) {
-                    $join->on('companies.id', '=', 'api_keys.keyable_id')
-                        ->where('api_keys.keyable_type', '=', 'App\\Models\\Company');
+                    $join->on('companies.id', '=', 'agencies.company_id')
+                        ->orOn(function ($join) {
+                            $join->on('companies.id', '=', 'api_keys.keyable_id')
+                                ->where('api_keys.keyable_type', '=', 'App\\Models\\Company');
+                        });
                 })
                 ->leftJoin('branches as agency_branches', 'agency_branches.agency_id', '=', 'agencies.id')
                 ->leftJoin('branches as company_branches', 'company_branches.company_id', '=', 'companies.id')
