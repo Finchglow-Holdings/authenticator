@@ -25,6 +25,11 @@ class AuthenticateClientMiddleware
 
             $isLive = str_contains($apiKey, "live");
 
+            $envKey = config('authenticator.app_env') === 'prod' ? 'live' : 'test';
+            if ($isLive && $envKey != "live") {
+                abort(403, "UnAuthorized");
+            }
+
             if ($isLive) {
                 $column = "live_hash_api_key";
                 $hashColumn = "live_api_key";
