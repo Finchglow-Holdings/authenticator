@@ -3,6 +3,7 @@
 namespace Finchglow\Authenticator\Http\Middleware;
 
 use Closure;
+use Finchglow\Authenticator\Http\Middleware\Concerns\LogsAuthorizationFailures;
 use Finchglow\Authenticator\Http\Services\ThirdPartySecuritySettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -16,6 +17,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class VerifyThirdPartySignature
 {
+    use LogsAuthorizationFailures;
+
     public function handle(Request $request, Closure $next): Response
     {
         $agencyId = $request->company_details['agency_id'] ?? null;
@@ -38,14 +41,14 @@ class VerifyThirdPartySignature
         $timestamp = $request->header($timestampHeader);
 
         if (!$signature || !$timestamp || abs(time() - (int) $timestamp) > $tolerance) {
-            abort(403, 'UnAuthorized');
+            $this->abortWithLog('invalid_signature_headers');
         }
 
         $payload = $request->method()."\n".$request->path()."\n".$request->getContent()."\n".$timestamp;
         $expected = hash_hmac('sha256', $payload, $settings['hmac_secret']);
 
         if (!hash_equals($expected, $signature)) {
-            abort(403, 'UnAuthorized');
+            $this->abortWithLog('signature_mismatch');
         }
 
         $cacheStore = config('authenticator.third_party_signature_cache_store');
@@ -53,7 +56,7 @@ class VerifyThirdPartySignature
         $replayKey = "third-party-signature:{$agencyId}:{$signature}";
 
         if ($cache->has($replayKey)) {
-            abort(403, 'UnAuthorized');
+            $this->abortWithLog('signature_replayed');
         }
 
         $cache->put($replayKey, true, $tolerance);

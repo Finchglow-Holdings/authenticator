@@ -3,15 +3,18 @@
 namespace Finchglow\Authenticator\Http\Middleware;
 
 use Closure;
+use Finchglow\Authenticator\Http\Middleware\Concerns\LogsAuthorizationFailures;
 use Finchglow\Authenticator\Http\Services\JwtAuthService;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class IsThirdPartyMiddleware
 {
+    use LogsAuthorizationFailures;
+
     /**
      * Handle an incoming request.
      *
@@ -22,31 +25,21 @@ class IsThirdPartyMiddleware
         try {
             $agency = request()->company_details ?? null;
             if (empty($agency)) {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('missing_company_details');
             }
 
             if ($agency['agency_type'] !== "third_party") {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('not_third_party_agency');
             }
 
             return $next($request);
+        } catch (HttpException $exception) {
+            // Already logged with its checkpoint in abortWithLog(), just rethrow.
+            throw $exception;
         } catch (\Exception $exception) {
-            DB::connection('authentication_db')->table('error_logs')->insert([
-                'service' => 'authenticator',
-                'type' => 'authorization',
-                'file' => 'IsThirdPartyMiddleware',
-                'error' => json_encode([
-                    'message' => $exception->getMessage(),
-                    'trace' => $exception->getTraceAsString(),
-                ]),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $this->logUnexpectedException($exception);
 
-            if ($exception->getMessage() != "UnAuthorized") {
-                abort(500, "Invalid Authentication");
-            }
-            abort(403, "UnAuthorized");
+            abort(500, "Invalid Authentication");
         }
     }
 }

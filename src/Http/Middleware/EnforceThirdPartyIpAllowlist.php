@@ -3,6 +3,7 @@
 namespace Finchglow\Authenticator\Http\Middleware;
 
 use Closure;
+use Finchglow\Authenticator\Http\Middleware\Concerns\LogsAuthorizationFailures;
 use Finchglow\Authenticator\Http\Services\ThirdPartySecuritySettingsService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,6 +14,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnforceThirdPartyIpAllowlist
 {
+    use LogsAuthorizationFailures;
+
     public function handle(Request $request, Closure $next): Response
     {
         if (!config('authenticator.third_party_ip_allowlist_middleware_enabled', true)) {
@@ -32,7 +35,7 @@ class EnforceThirdPartyIpAllowlist
         }
 
         if (!in_array($request->ip(), $settings['allowed_ips'], true)) {
-            abort(403, 'UnAuthorized');
+            $this->abortWithLog('ip_not_allowlisted');
         }
 
         return $next($request);

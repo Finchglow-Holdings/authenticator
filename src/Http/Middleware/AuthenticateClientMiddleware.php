@@ -3,13 +3,17 @@
 namespace Finchglow\Authenticator\Http\Middleware;
 
 use Closure;
+use Finchglow\Authenticator\Http\Middleware\Concerns\LogsAuthorizationFailures;
 use Finchglow\Authenticator\Http\Services\CipherSweetEncryption;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Illuminate\Support\Facades\DB;
 
 class AuthenticateClientMiddleware
 {
+    use LogsAuthorizationFailures;
+
     /**
      * Handle an incoming request.
      *
@@ -20,14 +24,14 @@ class AuthenticateClientMiddleware
         try {
             $apiKey = $request->header('FC-API-KEY');
             if (!$apiKey) {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('missing_api_key_header');
             }
 
             $isLive = str_contains($apiKey, "live");
 
             $envKey = config('authenticator.app_env') === 'prod' ? 'live' : 'test';
             if ($isLive && $envKey != "live") {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('env_mismatch');
             }
 
             if ($isLive) {
@@ -47,7 +51,7 @@ class AuthenticateClientMiddleware
                 ->first();
 
             if (!$keyFound) {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('api_key_not_found');
             }
 
             $keyFound = DB::connection('authentication_db')
@@ -87,18 +91,18 @@ class AuthenticateClientMiddleware
                 ->first();
 
             if (!$keyFound) {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('keyable_not_found');
             }
 
             if ($clientType !== "" && $clientType !== $keyFound->type) {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('client_type_mismatch');
             }
 
             $encryptService = new CipherSweetEncryption();
             $encryptedKey = $encryptService->decryptValue('api_keys', $hashColumn, $keyFound->$hashColumn);
 
             if ($encryptedKey != $key) {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('key_decryption_mismatch');
             }
 
             unset($keyFound->test_api_key);
@@ -119,23 +123,13 @@ class AuthenticateClientMiddleware
             $request->merge(['company_details' => $keyableArray]);
 
             return $next($request);
+        } catch (HttpException $exception) {
+            // Already logged with its checkpoint in abortWithLog(), just rethrow.
+            throw $exception;
         } catch (\Exception $exception) {
-            DB::connection('authentication_db')->table('error_logs')->insert([
-                'service' => 'authenticator',
-                'type' => 'authorization',
-                'file' => 'AuthenticateClientMiddleware.php',
-                'error' => json_encode([
-                    'message' => $exception->getMessage(),
-                    'trace' => $exception->getTraceAsString(),
-                ]),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $this->logUnexpectedException($exception);
 
-            if ($exception->getMessage() != "UnAuthorized") {
-                abort(500, "Invalid Authentication");
-            }
-            abort(403, "UnAuthorized");
+            abort(500, "Invalid Authentication");
         }
     }
 }
