@@ -29,8 +29,7 @@ class AuthenticateClientMiddleware
 
             $isLive = str_contains($apiKey, "live");
 
-            $envKey = config('authenticator.app_env') === 'prod' ? 'live' : 'test';
-            if ($isLive && $envKey != "live") {
+            if ($isLive && !$this->isLiveEnvironment()) {
                 $this->abortWithLog('env_mismatch');
             }
 
@@ -131,5 +130,17 @@ class AuthenticateClientMiddleware
 
             abort(500, "Invalid Authentication");
         }
+    }
+
+    private function isLiveEnvironment(): bool
+    {
+        $appEnv = strtolower(trim((string) config('authenticator.app_env')));
+
+        $liveEnvironments = array_map(
+            fn ($environment) => strtolower(trim((string) $environment)),
+            (array) config('authenticator.live_key_environments', ['prod'])
+        );
+
+        return in_array($appEnv, $liveEnvironments, true);
     }
 }

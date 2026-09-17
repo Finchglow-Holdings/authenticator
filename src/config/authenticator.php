@@ -8,6 +8,14 @@ return [
     'permissions_table' => env('PERMISSIONS_TABLE', 'model_has_permissions'),
     'app_env' => env('APP_ENV', 'dev'),
 
+    // Which app_env values are treated as production, and so may use live_ API keys.
+    // Compared case-insensitively. Services name their prod environment differently
+    // ("prod" vs "production"), so this accepts a comma-separated list.
+    'live_key_environments' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('AUTHENTICATOR_LIVE_ENVIRONMENTS', 'prod,production,live'))
+    ))),
+
     // Third-party hardening: signature verification, IP allowlist, per-agency rate limit.
     'third_party_security_table' => env('THIRD_PARTY_SECURITY_TABLE', 'third_party_security_settings'),
     'third_party_signature_header' => env('THIRD_PARTY_SIGNATURE_HEADER', 'X-FC-Signature'),
