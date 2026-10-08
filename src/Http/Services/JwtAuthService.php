@@ -10,7 +10,10 @@ class JwtAuthService
 {
     public function decodeToken(string $token){
         $token = str_replace("Bearer ", "", $token);
-        $secretKey = env('JWT_KEY', 'secret');
+        $secretKey = config('authenticator.jwt_key');
+        if (empty($secretKey)) {
+            throw new \RuntimeException('JWT key is not configured');
+        }
         $decodedToken = JWT::decode($token, new Key($secretKey, 'HS512'));
         return $decodedToken->data;
     }

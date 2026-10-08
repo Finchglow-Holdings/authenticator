@@ -6,6 +6,7 @@ use Closure;
 use Finchglow\Authenticator\Http\Services\ThirdPartySecuritySettingsService;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -30,11 +31,14 @@ class ThrottleThirdParty
         $settings = $agencyId ? (new ThirdPartySecuritySettingsService())->getForAgency($agencyId) : null;
         $maxAttempts = $settings['rate_limit_per_minute'] ?? config('authenticator.default_third_party_rate_limit', 60);
 
-        if ($this->limiter->tooManyAttempts($key, $maxAttempts)) {
-            abort(429, 'Too Many Requests', ['Retry-After' => (string) $this->limiter->availableIn($key)]);
+        $cacheStore = config('authenticator.third_party_rate_limit_cache_store');
+        $limiter = $cacheStore ? new RateLimiter(Cache::store($cacheStore)) : $this->limiter;
+
+        if ($limiter->tooManyAttempts($key, $maxAttempts)) {
+            abort(429, 'Too Many Requests', ['Retry-After' => (string) $limiter->availableIn($key)]);
         }
 
-        $this->limiter->hit($key, 60);
+        $limiter->hit($key, 60);
 
         return $next($request);
     }
