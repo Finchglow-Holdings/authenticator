@@ -3,13 +3,17 @@
 namespace Finchglow\Authenticator\Http\Middleware;
 
 use Closure;
+use Finchglow\Authenticator\Http\Middleware\Concerns\LogsAuthorizationFailures;
 use Finchglow\Authenticator\Http\Services\CipherSweetEncryption;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Illuminate\Support\Facades\DB;
 
 class AuthenticateClientMiddleware
 {
+    use LogsAuthorizationFailures;
+
     /**
      * Handle an incoming request.
      *
@@ -20,10 +24,14 @@ class AuthenticateClientMiddleware
         try {
             $apiKey = $request->header('FC-API-KEY');
             if (!$apiKey) {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('missing_api_key_header');
             }
 
             $isLive = str_contains($apiKey, "live");
+
+            if ($isLive && !$this->isLiveEnvironment()) {
+                $this->abortWithLog('env_mismatch');
+            }
 
             if ($isLive) {
                 $column = "live_hash_api_key";
@@ -33,7 +41,7 @@ class AuthenticateClientMiddleware
                 $hashColumn = "test_api_key";
             }
 
-            $key = explode("_", $apiKey)[1];
+            $key = explode("_", $apiKey)[1] ?? null;
             $hashedKey = hash('sha256', $key);
 
             $keyFound = DB::connection('authentication_db')
@@ -42,7 +50,7 @@ class AuthenticateClientMiddleware
                 ->first();
 
             if (!$keyFound) {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('api_key_not_found');
             }
 
             $keyFound = DB::connection('authentication_db')
@@ -52,8 +60,11 @@ class AuthenticateClientMiddleware
                         ->where('api_keys.keyable_type', '=', 'App\\Models\\Agency');
                 })
                 ->leftJoin('companies', function ($join) {
-                    $join->on('companies.id', '=', 'api_keys.keyable_id')
-                        ->where('api_keys.keyable_type', '=', 'App\\Models\\Company');
+                    $join->on('companies.id', '=', 'agencies.company_id')
+                        ->orOn(function ($join) {
+                            $join->on('companies.id', '=', 'api_keys.keyable_id')
+                                ->where('api_keys.keyable_type', '=', 'App\\Models\\Company');
+                        });
                 })
                 ->leftJoin('branches as agency_branches', 'agency_branches.agency_id', '=', 'agencies.id')
                 ->leftJoin('branches as company_branches', 'company_branches.company_id', '=', 'companies.id')
@@ -79,14 +90,18 @@ class AuthenticateClientMiddleware
                 ->first();
 
             if (!$keyFound) {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('keyable_not_found');
+            }
+
+            if ($clientType !== "" && $clientType !== $keyFound->type) {
+                $this->abortWithLog('client_type_mismatch');
             }
 
             $encryptService = new CipherSweetEncryption();
             $encryptedKey = $encryptService->decryptValue('api_keys', $hashColumn, $keyFound->$hashColumn);
 
             if ($encryptedKey != $key) {
-                abort(403, "UnAuthorized");
+                $this->abortWithLog('key_decryption_mismatch');
             }
 
             unset($keyFound->test_api_key);
@@ -107,23 +122,25 @@ class AuthenticateClientMiddleware
             $request->merge(['company_details' => $keyableArray]);
 
             return $next($request);
+        } catch (HttpException $exception) {
+            // Already logged with its checkpoint in abortWithLog(), just rethrow.
+            throw $exception;
         } catch (\Exception $exception) {
-            DB::connection('authentication_db')->table('error_logs')->insert([
-                'service' => 'authenticator',
-                'type' => 'authorization',
-                'file' => 'AuthenticateClientMiddleware.php',
-                'error' => json_encode([
-                    'message' => $exception->getMessage(),
-                    'trace' => $exception->getTraceAsString(),
-                ]),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $this->logUnexpectedException($exception);
 
-            if ($exception->getMessage() != "UnAuthorized") {
-                abort(403, $exception->getMessage());
-            }
-            abort(403, "UnAuthorized");
+            abort(500, "Invalid Authentication");
         }
+    }
+
+    private function isLiveEnvironment(): bool
+    {
+        $appEnv = strtolower(trim((string) config('authenticator.app_env')));
+
+        $liveEnvironments = array_map(
+            fn ($environment) => strtolower(trim((string) $environment)),
+            (array) config('authenticator.live_key_environments', ['prod'])
+        );
+
+        return in_array($appEnv, $liveEnvironments, true);
     }
 }
