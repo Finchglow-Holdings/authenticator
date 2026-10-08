@@ -1,11 +1,11 @@
 <?php
 
 return [
-    'api_key_table' => env('API_KEY_TABLE', 'users'), // Default table
-    'api_key_column' => env('API_KEY_COLUMN', 'api_key'), // Default column for API key
-    'api_secret_column' => env('API_SECRET_COLUMN', 'api_secret'), // Default column for API secret
-    'jwt_key' => env('JWT_KEY', 'secret'), // Default key for JWT
+    'jwt_key' => env('JWT_KEY'),
+    'encryption_key' => env('AUTHENTICATOR_ENCRYPTION_KEY', env('JWT_KEY')),
     'permissions_table' => env('PERMISSIONS_TABLE', 'model_has_permissions'),
+    'service_key' => env('INTERNAL_SERVICE_KEY'),
+    'service_key_header' => env('INTERNAL_SERVICE_KEY_HEADER', 'X-Service-Key'),
     'app_env' => env('APP_ENV', 'dev'),
 
     // Which app_env values are treated as production, and so may use live_ API keys.
@@ -25,6 +25,7 @@ return [
     // correct replay protection when the app runs multiple instances.
     'third_party_signature_cache_store' => env('THIRD_PARTY_SIGNATURE_CACHE_STORE'),
     'default_third_party_rate_limit' => env('DEFAULT_THIRD_PARTY_RATE_LIMIT', 60),
+    'third_party_rate_limit_cache_store' => env('THIRD_PARTY_RATE_LIMIT_CACHE_STORE'),
 
     // The upstream API gateway (Fusio) already enforces per-client IP allowlist + rate limit
     // for third-party traffic (see ApiGatewayService::registerClient in travels-user-service).

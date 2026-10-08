@@ -13,12 +13,18 @@ class ThirdPartySecuritySettingsService
     public function getForAgency(string $agencyId): ?array
     {
         $table = config('authenticator.third_party_security_table', 'third_party_security_settings');
+        $attributeKey = "authenticator.third_party_security_settings.{$agencyId}";
 
-        $settings = DB::connection('authentication_db')
-            ->table($table)
-            ->where('keyable_id', $agencyId)
-            ->where('keyable_type', 'App\\Models\\Agency')
-            ->first();
+        // Memoize the still-encrypted row so the decrypted secret never sits on the request.
+        if (!request()->attributes->has($attributeKey)) {
+            request()->attributes->set($attributeKey, DB::connection('authentication_db')
+                ->table($table)
+                ->where('keyable_id', $agencyId)
+                ->where('keyable_type', 'App\\Models\\Agency')
+                ->first());
+        }
+
+        $settings = request()->attributes->get($attributeKey);
 
         if (!$settings) {
             return null;

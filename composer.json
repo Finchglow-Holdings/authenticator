@@ -7,6 +7,11 @@
       "Finchglow\\Authenticator\\": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Finchglow\\Authenticator\\Tests\\": "tests/"
+    }
+  },
   "authors": [
     {
       "name": "Damilola Adekoya",
@@ -21,8 +26,14 @@
     }
   },
   "require": {
+    "php": "^8.2",
     "firebase/php-jwt": "^7.0",
+    "illuminate/support": "^10.0|^11.0|^12.0",
     "paragonie/ciphersweet": "^4"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^9.0",
+    "phpunit/phpunit": "^11.0"
   },
   "minimum-stability": "stable",
   "prefer-stable": true

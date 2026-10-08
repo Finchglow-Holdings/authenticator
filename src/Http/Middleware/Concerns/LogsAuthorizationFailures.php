@@ -2,7 +2,9 @@
 
 namespace Finchglow\Authenticator\Http\Middleware\Concerns;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Shared 403/authorization logging for middlewares, so every rejection point is traceable
@@ -30,17 +32,38 @@ trait LogsAuthorizationFailures
 
     private function logAuthorizationFailure(string $checkpoint, string $message, ?string $trace = null): void
     {
-        DB::connection('authentication_db')->table('error_logs')->insert([
-            'service' => 'authenticator',
-            'type' => 'authorization',
+        Log::warning('authenticator: '.$checkpoint, [
             'file' => class_basename(static::class),
-            'error' => json_encode(array_filter([
-                'checkpoint' => $checkpoint,
-                'message' => $message,
-                'trace' => $trace,
-            ])),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'message' => $message,
+            'ip' => request()->ip(),
         ]);
+
+        if ($checkpoint === 'missing_api_key_header') {
+            return;
+        }
+
+        try {
+            if (!Cache::add('authenticator:auth-failure:'.$checkpoint.':'.request()->ip(), true, 60)) {
+                return;
+            }
+
+            DB::connection('authentication_db')->table('error_logs')->insert([
+                'service' => 'authenticator',
+                'type' => 'authorization',
+                'file' => class_basename(static::class),
+                'error' => json_encode(array_filter([
+                    'checkpoint' => $checkpoint,
+                    'message' => $message,
+                    'trace' => $trace !== null ? substr($trace, 0, 2000) : null,
+                ])),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Throwable $exception) {
+            Log::error('authenticator: failed to write error_logs', [
+                'checkpoint' => $checkpoint,
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 }

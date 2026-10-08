@@ -27,7 +27,11 @@ class AuthenticateClientMiddleware
                 $this->abortWithLog('missing_api_key_header');
             }
 
-            $isLive = str_contains($apiKey, "live");
+            if (!preg_match('/^(test|live)_([A-Za-z0-9]+)$/', $apiKey, $matches)) {
+                $this->abortWithLog('malformed_api_key');
+            }
+
+            $isLive = $matches[1] === 'live';
 
             if ($isLive && !$this->isLiveEnvironment()) {
                 $this->abortWithLog('env_mismatch');
@@ -41,12 +45,13 @@ class AuthenticateClientMiddleware
                 $hashColumn = "test_api_key";
             }
 
-            $key = explode("_", $apiKey)[1] ?? null;
+            $key = $matches[2];
             $hashedKey = hash('sha256', $key);
 
             $keyFound = DB::connection('authentication_db')
                 ->table('api_keys')
                 ->where($column, $hashedKey)
+                ->whereNull('api_keys.deleted_at')
                 ->first();
 
             if (!$keyFound) {
@@ -66,9 +71,8 @@ class AuthenticateClientMiddleware
                                 ->where('api_keys.keyable_type', '=', 'App\\Models\\Company');
                         });
                 })
-                ->leftJoin('branches as agency_branches', 'agency_branches.agency_id', '=', 'agencies.id')
-                ->leftJoin('branches as company_branches', 'company_branches.company_id', '=', 'companies.id')
                 ->where($column, $hashedKey)
+                ->whereNull('api_keys.deleted_at')
                 ->select(
                     'api_keys.keyable_id as id',
                     'api_keys.test_api_key',
@@ -82,15 +86,21 @@ class AuthenticateClientMiddleware
                     'companies.email as company_email',
                     'companies.name as company_name',
                     'companies.company_type',
-                    'agency_branches.name as agency_branch_name',
-                    'agency_branches.id as agency_branch_id',
-                    'company_branches.name as branch_name',
-                    'company_branches.id as branch_id'
+                    'agencies.status as agency_status',
+                    'agencies.deleted_at as agency_deleted_at',
+                    'companies.status as company_status'
                 )
                 ->first();
 
             if (!$keyFound) {
                 $this->abortWithLog('keyable_not_found');
+            }
+
+            $agencyInactive = $keyFound->type == 'agency'
+                && ($keyFound->agency_deleted_at !== null || $keyFound->agency_status === 'inactive');
+
+            if ($agencyInactive || $keyFound->company_status === 'inactive') {
+                $this->abortWithLog('keyable_inactive');
             }
 
             if ($clientType !== "" && $clientType !== $keyFound->type) {
@@ -106,16 +116,29 @@ class AuthenticateClientMiddleware
 
             unset($keyFound->test_api_key);
             unset($keyFound->live_api_key);
+            unset($keyFound->agency_status);
+            unset($keyFound->agency_deleted_at);
+            unset($keyFound->company_status);
+
+            $branch = DB::connection('authentication_db')
+                ->table('branches')
+                ->when(
+                    $keyFound->type == 'agency',
+                    fn ($query) => $query->where('agency_id', $keyFound->id),
+                    fn ($query) => $query->where('company_id', $keyFound->id)->whereNull('agency_id')
+                )
+                ->orderByRaw("name = 'HQ' desc")
+                ->orderByDesc('status')
+                ->orderBy('created_at')
+                ->first(['id', 'name']);
 
             $keyableArray = json_decode(json_encode($keyFound), true);
+            $keyableArray['branch_name'] = $branch->name ?? null;
+            $keyableArray['branch_id'] = $branch->id ?? null;
             $keyableArray['user_type'] = $keyFound->type;
 
             if ($keyFound->type == 'agency') {
                 $keyableArray['name'] = $keyableArray['agency_name'];
-                $keyableArray['branch_name'] = $keyableArray['agency_branch_name'];
-                $keyableArray['branch_id'] = $keyableArray['agency_branch_id'];
-                unset($keyableArray['agency_branch_id']);
-                unset($keyableArray['agency_branch_name']);
             } else {
                 $keyableArray['name'] = $keyableArray['company_name'];
             }

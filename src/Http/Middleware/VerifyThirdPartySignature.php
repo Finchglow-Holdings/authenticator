@@ -55,11 +55,9 @@ class VerifyThirdPartySignature
         $cache = $cacheStore ? Cache::store($cacheStore) : Cache::store();
         $replayKey = "third-party-signature:{$agencyId}:{$signature}";
 
-        if ($cache->has($replayKey)) {
+        if (!$cache->add($replayKey, true, $tolerance)) {
             $this->abortWithLog('signature_replayed');
         }
-
-        $cache->put($replayKey, true, $tolerance);
 
         return $next($request);
     }

@@ -20,9 +20,7 @@ class CipherSweetEncryption
      */
     public function __construct()
     {
-//        $key = env('JWT_KEY', "secret");
-
-        $key = env('JWT_KEY');
+        $key = (string) config('authenticator.encryption_key');
 
         // Validate key length (64 hex chars = 32 bytes)
         if (strlen($key) !== 64) {

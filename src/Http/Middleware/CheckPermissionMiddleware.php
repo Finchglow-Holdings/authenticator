@@ -22,15 +22,16 @@ class CheckPermissionMiddleware
         $jwtAuthService = new JwtAuthService();
 
         $token = $request->header('token');
-        if(!$token) {
-            $token = $request->header('token');
-        }
 
         if (!$token) {
             abort(Response::HTTP_UNAUTHORIZED, 'Access denied');
         }
 
-        $decodedToken = $jwtAuthService->decodeToken($token);
+        try {
+            $decodedToken = $jwtAuthService->decodeToken($token);
+        } catch (\Throwable $exception) {
+            abort(Response::HTTP_UNAUTHORIZED, 'Access denied');
+        }
         // set Auth user;
         $user = new GenericUser((array) $decodedToken);
         Auth::setUser($user);
@@ -40,7 +41,7 @@ class CheckPermissionMiddleware
             return $next($request);
         }
 
-        $permissionsTable = env('PERMISSIONS_TABLE', default: 'model_has_permissions');
+        $permissionsTable = config('authenticator.permissions_table', 'model_has_permissions');
         $modelType = 'App\Models\User';
 
         if (in_array(strtolower($user->type), ['super_admin', 'company'])) {

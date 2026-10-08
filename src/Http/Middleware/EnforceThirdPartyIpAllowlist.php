@@ -6,6 +6,7 @@ use Closure;
 use Finchglow\Authenticator\Http\Middleware\Concerns\LogsAuthorizationFailures;
 use Finchglow\Authenticator\Http\Services\ThirdPartySecuritySettingsService;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\IpUtils;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -34,7 +35,7 @@ class EnforceThirdPartyIpAllowlist
             return $next($request);
         }
 
-        if (!in_array($request->ip(), $settings['allowed_ips'], true)) {
+        if (!IpUtils::checkIp((string) $request->ip(), $settings['allowed_ips'])) {
             $this->abortWithLog('ip_not_allowlisted');
         }
 

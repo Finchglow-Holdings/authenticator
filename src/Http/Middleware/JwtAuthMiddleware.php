@@ -7,6 +7,7 @@ use Finchglow\Authenticator\Http\Services\JwtAuthService;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class JwtAuthMiddleware {
     public function handle($request, Closure $next, $type)
@@ -33,17 +34,17 @@ class JwtAuthMiddleware {
                     return response()->json(['status' => false, 'error' => 'Unauthorized to access this resource'], Response::HTTP_UNAUTHORIZED);
                 }
                 if ($loggedInUser->type == 'agent') {
-                    if ($loggedInUser->company_id !== $companyDetails['id'] ?? "") {
+                    if ($loggedInUser->company_id !== ($companyDetails['id'] ?? "")) {
                         return response()->json(['status' => false, 'error' => 'Unauthorized to access this resource'], Response::HTTP_UNAUTHORIZED);
                     }
                 }
 
                 if ($loggedInUser->type == 'user') {
-                    if ($loggedInUser->company_id !== $companyDetails['company_id'] ?? "") {
+                    if ($loggedInUser->company_id !== ($companyDetails['company_id'] ?? "")) {
                         return response()->json(['status' => false, 'error' => 'Unauthorized to access this resource'], Response::HTTP_UNAUTHORIZED);
                     }
 
-                    if ($loggedInUser->agency_id !== $companyDetails['agency_id'] ?? "") {
+                    if ($loggedInUser->agency_id !== ($companyDetails['agency_id'] ?? "")) {
                         return response()->json(['status' => false, 'error' => 'Unauthorized to access this resource'], Response::HTTP_UNAUTHORIZED);
                     }
                 }
@@ -62,7 +63,9 @@ class JwtAuthMiddleware {
             return $next($request);
 
         } catch (\Exception $e) {
-            return response()->json(['status' => false, 'error' => $e->getMessage()], Response::HTTP_UNAUTHORIZED);
+            Log::info('authenticator: jwt-auth rejected token', ['error' => $e->getMessage()]);
+
+            return response()->json(['status' => false, 'error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
         }
     }
 }
