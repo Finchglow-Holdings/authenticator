@@ -59,13 +59,58 @@ class ThirdPartyHardeningTest extends TestCase
 
         foreach (['10.20.30.40', '203.0.113.7', '2001:db8::1'] as $ip) {
             $this->withServerVariables(['REMOTE_ADDR' => $ip])
-                ->getJson('/allowlisted', ['FC-API-KEY' => $this->key])
+                ->getJson('/allowlisted', ['FC-API-KEY' => $this->key, 'X-Bypass-Ip-Check' => 'false'])
                 ->assertOk();
         }
 
         $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.10'])
+            ->getJson('/allowlisted', ['FC-API-KEY' => $this->key, 'X-Bypass-Ip-Check' => 'false'])
+            ->assertForbidden();
+    }
+
+    public function test_ip_allowlist_is_bypassed_outside_production_unless_the_caller_sends_false(): void
+    {
+        $this->createSecuritySettings($this->agencyId, [
+            'enforce_ip_allowlist' => true,
+            'allowed_ips' => json_encode(['203.0.113.7']),
+        ]);
+
+        foreach ([null, '', 'true', '1', 'not-a-boolean'] as $value) {
+            $headers = ['FC-API-KEY' => $this->key] + ($value === null ? [] : ['X-Bypass-Ip-Check' => $value]);
+
+            $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.10'])
+                ->getJson('/allowlisted', $headers)
+                ->assertOk();
+        }
+
+        foreach (['false', '0', 'off'] as $value) {
+            $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.10'])
+                ->getJson('/allowlisted', ['FC-API-KEY' => $this->key, 'X-Bypass-Ip-Check' => $value])
+                ->assertForbidden();
+        }
+
+        $this->assertSame(['ip_not_allowlisted'], $this->errorLogCheckpoints());
+    }
+
+    public function test_production_always_checks_the_ip_allowlist(): void
+    {
+        config(['authenticator.app_env' => 'production']);
+        $this->createSecuritySettings($this->agencyId, [
+            'enforce_ip_allowlist' => true,
+            'allowed_ips' => json_encode(['203.0.113.7']),
+        ]);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.10'])
+            ->getJson('/allowlisted', ['FC-API-KEY' => $this->key, 'X-Bypass-Ip-Check' => 'true'])
+            ->assertForbidden();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.10'])
             ->getJson('/allowlisted', ['FC-API-KEY' => $this->key])
             ->assertForbidden();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.7'])
+            ->getJson('/allowlisted', ['FC-API-KEY' => $this->key, 'X-Bypass-Ip-Check' => 'true'])
+            ->assertOk();
     }
 
     public function test_throttle_returns_429_with_retry_after(): void

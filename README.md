@@ -41,7 +41,7 @@ The package reads `api_keys`, `agencies`, `companies`, `branches`, `model_has_pe
 | `check-permission:{name}` | `token` | Owners (`role = owner`) pass. Everyone else needs the permission assigned directly in `model_has_permissions`. A missing or invalid token, or a missing permission, returns 401. |
 | `get-user` | `token` | Optional auth: sets `Auth::user()` when the token is valid and ignores it otherwise. |
 | `third-party` | — | Requires `company_details.agency_type` to be `third_party`. Run after `auth-client-key`. |
-| `third-party-ip-allowlist` | — | When the agency enforces it, the client IP must match `allowed_ips` (single IPs or CIDR ranges, IPv4 or IPv6). |
+| `third-party-ip-allowlist` | `X-Bypass-Ip-Check` | When the agency enforces it, the client IP must match `allowed_ips` (single IPs or CIDR ranges, IPv4 or IPv6). Outside production (`AUTHENTICATOR_LIVE_ENVIRONMENTS`) the check is skipped unless the request sends `X-Bypass-Ip-Check: false`; production ignores the header and always checks. |
 | `third-party-signature` | `X-FC-Signature`, `X-FC-Timestamp` | When the agency enforces it, checks `hex(hmac_sha256("METHOD\npath\nbody\ntimestamp", secret))` within the tolerance window and rejects replays. |
 | `third-party-throttle` | — | Per-agency rate limit per minute, then 429 with `Retry-After`. |
 
