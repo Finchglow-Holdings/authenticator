@@ -8,7 +8,7 @@ return [
     'service_key_header' => env('INTERNAL_SERVICE_KEY_HEADER', 'X-Service-Key'),
     'app_env' => env('APP_ENV', 'dev'),
 
-    // Which app_env values are treated as production, and so may use live_ API keys.
+    // Which app_env values are treated as production: they may use live_ API keys and always run the third-party IP allowlist.
     // Compared case-insensitively. Services name their prod environment differently
     // ("prod" vs "production"), so this accepts a comma-separated list.
     'live_key_environments' => array_values(array_filter(array_map(

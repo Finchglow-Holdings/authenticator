@@ -155,7 +155,7 @@ class AuthenticateClientMiddleware
         }
     }
 
-    private function isLiveEnvironment(): bool
+    public static function isLiveEnvironment(): bool
     {
         $appEnv = strtolower(trim((string) config('authenticator.app_env')));
 
