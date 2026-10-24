@@ -68,25 +68,25 @@ class ThirdPartyHardeningTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_ip_allowlist_is_bypassed_outside_production_unless_the_caller_sends_false(): void
+    public function test_ip_allowlist_is_checked_outside_production_unless_the_caller_sends_true(): void
     {
         $this->createSecuritySettings($this->agencyId, [
             'enforce_ip_allowlist' => true,
             'allowed_ips' => json_encode(['203.0.113.7']),
         ]);
 
-        foreach ([null, '', 'true', '1', 'not-a-boolean'] as $value) {
+        foreach ([null, '', 'false', '0', 'not-a-boolean'] as $value) {
             $headers = ['FC-API-KEY' => $this->key] + ($value === null ? [] : ['X-Bypass-Ip-Check' => $value]);
 
             $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.10'])
                 ->getJson('/allowlisted', $headers)
-                ->assertOk();
+                ->assertForbidden();
         }
 
-        foreach (['false', '0', 'off'] as $value) {
+        foreach (['true', '1', 'on'] as $value) {
             $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.10'])
                 ->getJson('/allowlisted', ['FC-API-KEY' => $this->key, 'X-Bypass-Ip-Check' => $value])
-                ->assertForbidden();
+                ->assertOk();
         }
 
         $this->assertSame(['ip_not_allowlisted'], $this->errorLogCheckpoints());

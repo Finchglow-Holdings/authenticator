@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Must run after 'auth-client-key' (relies on request()->company_details). Opt-in per agency:
  * passes through when no settings row exists or enforce_ip_allowlist is off.
- * Outside production the check only runs when the caller sends X-Bypass-Ip-Check: false.
+ * Outside production the caller can skip the check by sending X-Bypass-Ip-Check: true.
  */
 class EnforceThirdPartyIpAllowlist
 {
@@ -49,9 +49,6 @@ class EnforceThirdPartyIpAllowlist
 
     private function bypassRequested(Request $request): bool
     {
-        // Not sent, empty or unrecognised all mean bypass; only an explicit false runs the check
-        $value = trim((string) $request->header('X-Bypass-Ip-Check'));
-
-        return $value === '' || filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) !== false;
+        return filter_var(trim((string) $request->header('X-Bypass-Ip-Check')), FILTER_VALIDATE_BOOLEAN);
     }
 }
