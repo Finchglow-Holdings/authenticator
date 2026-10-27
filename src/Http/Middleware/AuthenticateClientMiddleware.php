@@ -55,7 +55,7 @@ class AuthenticateClientMiddleware
                 ->first();
 
             if (!$keyFound) {
-                $this->abortWithLog('api_key_not_found');
+                $this->abortWithLog('api_key_not_found', ['kind' => $matches[1]]);
             }
 
             $keyFound = DB::connection('authentication_db')
@@ -100,11 +100,11 @@ class AuthenticateClientMiddleware
                 && ($keyFound->agency_deleted_at !== null || $keyFound->agency_status === 'inactive');
 
             if ($agencyInactive || $keyFound->company_status === 'inactive') {
-                $this->abortWithLog('keyable_inactive');
+                $this->abortWithLog('keyable_inactive', ['who' => $agencyInactive ? 'agency' : 'company']);
             }
 
             if ($clientType !== "" && $clientType !== $keyFound->type) {
-                $this->abortWithLog('client_type_mismatch');
+                $this->abortWithLog('client_type_mismatch', ['expected' => $clientType, 'actual' => $keyFound->type]);
             }
 
             $encryptService = new CipherSweetEncryption();

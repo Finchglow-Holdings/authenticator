@@ -29,7 +29,7 @@ class IsThirdPartyMiddleware
             }
 
             if ($agency['agency_type'] !== "third_party") {
-                $this->abortWithLog('not_third_party_agency');
+                $this->abortWithLog('not_third_party_agency', ['who' => $agency['agency_type'] ? "a {$agency['agency_type']} agency" : 'a company']);
             }
 
             return $next($request);

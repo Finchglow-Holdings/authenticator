@@ -3,6 +3,7 @@
 namespace Finchglow\Authenticator\Http\Middleware;
 
 use Closure;
+use Finchglow\Authenticator\Exceptions\AuthenticationRejected;
 use Finchglow\Authenticator\Http\Services\ThirdPartySecuritySettingsService;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Http\Request;
@@ -35,7 +36,12 @@ class ThrottleThirdParty
         $limiter = $cacheStore ? new RateLimiter(Cache::store($cacheStore)) : $this->limiter;
 
         if ($limiter->tooManyAttempts($key, $maxAttempts)) {
-            abort(429, 'Too Many Requests', ['Retry-After' => (string) $limiter->availableIn($key)]);
+            $retryAfter = $limiter->availableIn($key);
+            $message = AuthenticateClientMiddleware::isLiveEnvironment()
+                ? "Too many requests. Try again in {$retryAfter} seconds."
+                : "Rate limit of {$maxAttempts} requests per minute reached for {$key}. Try again in {$retryAfter} seconds.";
+
+            throw new AuthenticationRejected(429, $message, 'rate_limited', 'rate-limit', ['Retry-After' => (string) $retryAfter]);
         }
 
         $limiter->hit($key, 60);

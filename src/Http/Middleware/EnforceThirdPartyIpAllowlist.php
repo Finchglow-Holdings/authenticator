@@ -41,7 +41,7 @@ class EnforceThirdPartyIpAllowlist
         }
 
         if (!IpUtils::checkIp((string) $request->ip(), $settings['allowed_ips'])) {
-            $this->abortWithLog('ip_not_allowlisted');
+            $this->abortWithLog('ip_not_allowlisted', ['allowed' => implode(', ', $settings['allowed_ips'])]);
         }
 
         return $next($request);

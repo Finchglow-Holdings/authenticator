@@ -41,14 +41,14 @@ class VerifyThirdPartySignature
         $timestamp = $request->header($timestampHeader);
 
         if (!$signature || !$timestamp || abs(time() - (int) $timestamp) > $tolerance) {
-            $this->abortWithLog('invalid_signature_headers');
+            $this->abortWithLog('invalid_signature_headers', ['timestamp' => $timestamp ?: 'none', 'now' => time()]);
         }
 
         $payload = $request->method()."\n".$request->path()."\n".$request->getContent()."\n".$timestamp;
         $expected = hash_hmac('sha256', $payload, $settings['hmac_secret']);
 
         if (!hash_equals($expected, $signature)) {
-            $this->abortWithLog('signature_mismatch');
+            $this->abortWithLog('signature_mismatch', ['path' => $request->path()]);
         }
 
         $cacheStore = config('authenticator.third_party_signature_cache_store');
