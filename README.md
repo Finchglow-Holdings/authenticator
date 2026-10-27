@@ -55,7 +55,7 @@ Route::middleware(['auth-client-key', 'jwt-auth:agent', 'check-permission:create
 Route::middleware('auth-internal')->post('/internal/bookings/sync', [SyncController::class, 'store']);
 ```
 
-Rejections from `auth-client-key`, `auth-internal`, `third-party`, the IP allowlist and the signature check return 403 `UnAuthorized`. Each one is logged to the application log as `authenticator: <checkpoint>`. It is also written to `error_logs`, except for a missing `FC-API-KEY` header, and at most once per checkpoint per IP per minute.
+Rejections from `auth-client-key`, `auth-internal`, `third-party`, the IP allowlist and the signature check return 403, and the throttle returns 429, as JSON: `{"status": false, "message": "…", "error": {"source": "api", "code": "…", "check": "client-key|partner|ip-allowlist|signature|rate-limit|internal"}}`. In production the message and code are public (`invalid_api_key`, `ip_not_allowed`, …). Elsewhere the code is the internal checkpoint and the message explains the cause, for example the caller IP and the allowed list. Each one is logged to the application log as `authenticator: <checkpoint>`. It is also written to `error_logs`, except for a missing `FC-API-KEY` header, and at most once per checkpoint per IP per minute.
 
 ## Configuration
 
