@@ -31,7 +31,7 @@ class RejectionMessagesTest extends TestCase
             ->assertJsonPath('error.code', 'ip_not_allowlisted')
             ->assertJsonPath('error.check', 'ip-allowlist')
             ->assertJsonMissingPath('exception');
-        $this->assertStringStartsWith('Request IP 192.168.1.10 is not in this agency\'s allowed_ips (203.0.113.7).', $response->json('message'));
+        $this->assertStringStartsWith('Your IP 192.168.1.10 was rejected. This agency\'s allowed IPs are: 203.0.113.7.', $response->json('message'));
 
         $response = $this->getJson('/client', ['FC-API-KEY' => 'test_doesnotexist'])
             ->assertForbidden()
@@ -54,7 +54,7 @@ class RejectionMessagesTest extends TestCase
             ->assertForbidden()
             ->assertExactJson([
                 'status' => false,
-                'message' => 'Requests from 192.168.1.10 are not on this account\'s IP allowlist.',
+                'message' => 'Your IP 192.168.1.10 was rejected: it is not on this account\'s IP allowlist.',
                 'error' => ['source' => 'api', 'code' => 'ip_not_allowed', 'check' => 'ip-allowlist'],
             ]);
 
